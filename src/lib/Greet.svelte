@@ -1,12 +1,25 @@
 <script lang="ts">
   import { invoke } from "@tauri-apps/api/tauri"
+import { WebviewWindow } from '@tauri-apps/api/window'
 
   let name = "";
   let greetMsg = ""
 
   async function greet(){
+    console.log("WOW")
     // Learn more about Tauri commands at https://tauri.app/v1/guides/features/command
-    greetMsg = await invoke("greet", { name })
+    greetMsg = await invoke("open_docs", { name })
+
+    const webview = new WebviewWindow('theUniqueLabel', {
+  url: 'https://tauri.app/',
+})
+webview.once('tauri://created', function () {
+  console.log("Created")
+})
+webview.once('tauri://error', function (e) {
+  console.log("Error", e)
+
+})
   }
 </script>
 

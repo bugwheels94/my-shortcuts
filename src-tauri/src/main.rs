@@ -9,7 +9,30 @@ fn greet(name: &str) -> String {
 
 fn main() {
     tauri::Builder::default()
-        .invoke_handler(tauri::generate_handler![greet])
+        // .setup(|app| {
+        //     // listen to the `event-name` (emitted on any window)
+        //     let id = app.listen_global("event-name", |event| {
+        //       println!("got event-name with payload {:?}", event.payload());
+        //     });
+        //     // unlisten to the event using the `id` returned on the `listen_global` function
+        //     // a `once_global` API is also exposed on the `App` struct
+        //     // app.unlisten(id);
+        //     // emit the `event-name` event to all webview windows on the frontend
+        //     // app.emit_all("event-name", Payload { message: "Tauri is awesome!".into() }).unwrap();
+        //     Ok(())
+        //   })
+        .invoke_handler(tauri::generate_handler![greet, open_docs])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
+}
+
+#[tauri::command]
+async fn open_docs(handle: tauri::AppHandle, invoke_message: String) {
+    let docs_window = tauri::WindowBuilder::new(
+        &handle,
+        "external", /* the unique window label */
+        tauri::WindowUrl::External(invoke_message.parse().unwrap()),
+    )
+    .build()
+    .unwrap();
 }

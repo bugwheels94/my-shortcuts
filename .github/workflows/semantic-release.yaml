@@ -45,7 +45,7 @@ jobs:
       - uses: actions/setup-node@v3
         with:
           cache: npm
-          node-version: 16
+          node-version: 18
           cache-dependency-path: "package-lock.json"
       - run: npm i
       - run: npm run tauri build
@@ -90,7 +90,7 @@ jobs:
       - uses: actions/setup-node@v3
         with:
           cache: npm
-          node-version: 16
+          node-version: 18
           cache-dependency-path: "package-lock.json"
       - run: npm i
       - uses: actions/download-artifact@v3

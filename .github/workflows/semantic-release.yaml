@@ -1,0 +1,104 @@
+name: Release
+"on":
+  push:
+    branches:
+      - master
+      - next
+      - alpha
+      - next-major
+      - beta
+      - "*.x"
+jobs:
+  # windows:
+  #   name: release-windows
+  #   needs: [ui]
+  #   runs-on: windows-2019
+  #   steps:
+  #     - uses: actions/checkout@v3
+  #     - name: Remove File
+  #       uses: JesseTG/rm@v1.0.3
+  #       with:
+  #         path: ./ui
+  #     - uses: actions/download-artifact@v3
+  #       with:
+  #         name: ui
+  #         path: ui
+  #     - run: npm i -g @lytejs/mesh@beta
+  #     - run: npm cache clean --force
+  #     - run: mesh -c sync dependencies
+  #     - run: npm i --legacy-peer-deps
+  #     - run: npm run build
+  #     - run: npm run build:electron
+  #     - run: tree out /f | more
+  #     - uses: actions/upload-artifact@v3
+  #       with:
+  #         name: windows-out
+  #         path: |
+  #           out/make/zip/**/*.zip
+  #           out/make/squirrel.windows/**/*.exe
+
+  mac:
+    name: release-mac
+    runs-on: macos-12
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          cache: npm
+          node-version: 16
+          cache-dependency-path: "package-lock.json"
+      - run: npm i
+      - run: npm run tauri build
+      - run: find out -type f
+      - uses: actions/upload-artifact@v3
+        with:
+          name: mac-out
+          path: |
+            src-tauri/target/release/bundle/macos/my-shortcuts.app
+            src-tauri/target/release/bundle/dmg/my-shortcuts_0.0.0_x64.dmg
+  # ubuntu:
+  #   name: release-ubuntu
+  #   runs-on: ubuntu-22.04
+  #   needs: [ui]
+  #   steps:
+  #     - uses: actions/checkout@v3
+  #     - run: rm -rf ui
+  #     - uses: actions/download-artifact@v3
+  #       with:
+  #         name: ui
+  #         path: ui
+  #     - run: npm i -g @lytejs/mesh@beta
+  #     - run: mesh -c sync dependencies
+  #     - run: npm i --legacy-peer-deps
+  #     - run: sudo apt -y install rpm
+  #     - run: npm i -g electron-installer-debian electron-installer-redhat
+  #     - run: npm run build
+  #     - run: npm run build:electron
+  #     - run: find out -type f
+  #     - uses: actions/upload-artifact@v3
+  #       with:
+  #         name: ubuntu-out
+  #         path: |
+  #           out/make/zip/**/*.zip
+  #           out/make/rpm/**/*.rpm
+  #           out/make/deb/**/*.deb
+  semantic-release:
+    name: semantic-release
+    runs-on: ubuntu-22.04
+    needs: [mac]
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          cache: npm
+          node-version: 16
+          cache-dependency-path: "package-lock.json"
+      - run: npm i
+      - uses: actions/download-artifact@v3
+        with:
+          name: mac-out
+          path: mac-out
+      - run: npx semantic-release
+        env:
+          HUSKY: 0
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

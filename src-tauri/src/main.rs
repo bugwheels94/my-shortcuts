@@ -28,7 +28,7 @@ fn main() {
 
 #[tauri::command]
 async fn open_docs(handle: tauri::AppHandle, invoke_message: String) {
-    let docs_window = tauri::WindowBuilder::new(
+    tauri::WindowBuilder::new(
         &handle,
         "external", /* the unique window label */
         tauri::WindowUrl::External(invoke_message.parse().unwrap()),

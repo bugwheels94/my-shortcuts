@@ -1,0 +1,31 @@
+{
+	"plugins": [
+		"@semantic-release/commit-analyzer",
+		"@semantic-release/release-notes-generator",
+
+		[
+			"@semantic-release/exec",
+			{
+				"publishCmd": "mkdir tmp-assets && mv \"mac-out/src-tauri/target/release/bundle/macos/my-shortcuts.app\" \"tmp-assets/my-shortcuts-${nextRelease.version}.app\" && mv \"mac-out/src-tauri/target/release/bundle/dmg/my-shortcuts_0.0.0-x64.dmg\" \"tmp-assets/my-shortcuts-${nextRelease.version}.dmg\""
+			}
+		],
+		[
+			"@semantic-release/exec",
+			{
+				"publishCmd": "echo ${nextRelease.version} > .version_semantic_info_workaround"
+			}
+		],
+		[
+			"@semantic-release/github",
+			{
+				"successComment": false,
+				"failTitle": false,
+				"assets": [
+					{
+						"path": "tmp-assets/*"
+					}
+				]
+			}
+		],
+	]
+}

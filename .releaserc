@@ -6,7 +6,7 @@
 		[
 			"@semantic-release/exec",
 			{
-				"publishCmd": "mkdir tmp-assets && mv \"mac-out/macos/my-shortcuts.app\" \"tmp-assets/my-shortcuts-${nextRelease.version}.app\" && mv \"mac-out/dmg/my-shortcuts_0.0.0-x64.dmg\" \"tmp-assets/my-shortcuts-${nextRelease.version}.dmg\""
+				"publishCmd": "mkdir tmp-assets && mv \"mac-out/macos/my-shortcuts.app\" \"tmp-assets/my-shortcuts-${nextRelease.version}.app\" && mv \"mac-out/dmg/my-shortcuts_0.0.0_x64.dmg\" \"tmp-assets/my-shortcuts-${nextRelease.version}.dmg\""
 			}
 		],
 		[

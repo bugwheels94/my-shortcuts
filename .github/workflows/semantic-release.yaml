@@ -13,7 +13,6 @@ jobs:
     name: release-windows
     runs-on: windows-2022
     steps:
-    steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-node@v3
         with:

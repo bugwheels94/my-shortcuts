@@ -21,12 +21,12 @@ jobs:
           cache-dependency-path: "package-lock.json"
       - run: npm i
       - run: npm run tauri build
-      # - uses: actions/upload-artifact@v3
-      #   with:
-      #     name: mac-out
-      #     path: |
-      #       src-tauri/target/release/bundle/macos/my-shortcuts.app
-      #       src-tauri/target/release/bundle/dmg/my-shortcuts_0.0.0_x64.dmg
+      - uses: actions/upload-artifact@v3
+        with:
+          name: windows-out
+          path: |
+            src-tauri/target/release/bundle/msi/my-shortcuts_0.0.0_x64_en-US.msi
+            src-tauri/target/release/bundle/nsis/my-shortcuts_0.0.0_x64-setup.exe
 
   mac:
     name: release-mac
@@ -75,7 +75,7 @@ jobs:
   semantic-release:
     name: semantic-release
     runs-on: ubuntu-22.04
-    needs: [mac]
+    needs: [mac, windows]
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-node@v3

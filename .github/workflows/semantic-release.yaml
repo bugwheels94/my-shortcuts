@@ -88,6 +88,10 @@ jobs:
         with:
           name: mac-out
           path: mac-out
+      - uses: actions/download-artifact@v3
+        with:
+          name: windows-out
+          path: windows-out
       - run: npx semantic-release
         env:
           HUSKY: 0

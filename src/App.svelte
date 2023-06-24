@@ -1,13 +1,9 @@
 <script lang="ts">
   import { onMount } from "svelte";
-  import { invoke } from "@tauri-apps/api/tauri";
   import yaml from "js-yaml";
-  import {
-    readTextFile,
-    BaseDirectory,
-    createDir,
-    writeTextFile,
-  } from "@tauri-apps/api/fs";
+  import { WebviewWindow } from "@tauri-apps/api/window";
+
+  import { readTextFile, BaseDirectory, createDir, writeTextFile } from "@tauri-apps/api/fs";
   // Read the text file in the `$APPCONFIG/app.conf` path
   function handleSubmit() {
     const formData = new FormData(this);
@@ -25,8 +21,23 @@
   let show = false;
   type Config = { gistId: string; token: string };
   const config: Config = { gistId: "", token: "" };
-  async function openIcon(url) {
-    await invoke("open_docs", { invokeMessage: url });
+  async function openIcon(url, label) {
+    const webview = new WebviewWindow(label, {
+      url: url,
+      title: label,
+      maximized: true,
+    });
+    // since the webview window is created asynchronously,
+    // Tauri emits the `tauri://created` and `tauri://error` to notify you of the creation response
+    webview.once("tauri://created", function () {
+      // webview window successfully created
+    });
+    webview.once("tauri://error", function (e) {
+      console.log(e);
+      // an error occurred during webview window creation
+    });
+
+    // await invoke("open_docs", { invokeMessage: url, label });
   }
   const toJson = <T>(content: string = ""): T => {
     try {
@@ -106,10 +117,7 @@
       if (json.meta === config) return;
       if (config.gistId && config.token) {
         const res = await fetch(
-          "https://api.github.com/gists/" +
-            config.gistId +
-            "?time=" +
-            new Date(),
+          "https://api.github.com/gists/" + config.gistId + "?time=" + new Date(),
           {
             headers: {
               "X-GitHub-Api-Version": "2022-11-28",
@@ -165,8 +173,8 @@
       {#each json.content[category] as icon}
         <button
           class="icon"
-          on:click={() => openIcon(icon.url)}
-          on:keyup={(e) => e.key === "Enter" && openIcon(icon.url)}
+          on:click={() => openIcon(icon.url, category + "-" + icon.name)}
+          on:keyup={(e) => e.key === "Enter" && openIcon(icon.url, category + "-" + icon.name)}
         >
           <img src={icon.icon} alt="icon.url" />
           {icon.name || "unnamed"}

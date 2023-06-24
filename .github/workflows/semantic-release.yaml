@@ -9,33 +9,25 @@ name: Release
       - beta
       - "*.x"
 jobs:
-  # windows:
-  #   name: release-windows
-  #   needs: [ui]
-  #   runs-on: windows-2019
-  #   steps:
-  #     - uses: actions/checkout@v3
-  #     - name: Remove File
-  #       uses: JesseTG/rm@v1.0.3
-  #       with:
-  #         path: ./ui
-  #     - uses: actions/download-artifact@v3
-  #       with:
-  #         name: ui
-  #         path: ui
-  #     - run: npm i -g @lytejs/mesh@beta
-  #     - run: npm cache clean --force
-  #     - run: mesh -c sync dependencies
-  #     - run: npm i --legacy-peer-deps
-  #     - run: npm run build
-  #     - run: npm run build:electron
-  #     - run: tree out /f | more
-  #     - uses: actions/upload-artifact@v3
-  #       with:
-  #         name: windows-out
-  #         path: |
-  #           out/make/zip/**/*.zip
-  #           out/make/squirrel.windows/**/*.exe
+  windows:
+    name: release-windows
+    runs-on: windows-2022
+    steps:
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          cache: npm
+          node-version: 18
+          cache-dependency-path: "package-lock.json"
+      - run: npm i
+      - run: npm run tauri build
+      # - uses: actions/upload-artifact@v3
+      #   with:
+      #     name: mac-out
+      #     path: |
+      #       src-tauri/target/release/bundle/macos/my-shortcuts.app
+      #       src-tauri/target/release/bundle/dmg/my-shortcuts_0.0.0_x64.dmg
 
   mac:
     name: release-mac

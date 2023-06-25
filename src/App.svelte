@@ -4,6 +4,7 @@
   import { WebviewWindow } from "@tauri-apps/api/window";
 
   import { readTextFile, BaseDirectory, createDir, writeTextFile } from "@tauri-apps/api/fs";
+  import { invoke } from "@tauri-apps/api/tauri";
   // Read the text file in the `$APPCONFIG/app.conf` path
   function handleSubmit() {
     const formData = new FormData(this);
@@ -21,22 +22,28 @@
   let show = false;
   type Config = { gistId: string; token: string };
   const config: Config = { gistId: "", token: "" };
-  async function openIcon(url, label) {
+  async function openIcon(category: string, icon: Icon) {
+    const label =
+      category +
+      "-" +
+      icon.name +
+      (icon.allowMultipleInstances === "true" ? (Math.random() + 1).toString(36).substring(7) : "");
     const webview = new WebviewWindow(label, {
-      url: url,
+      url: icon.url,
       title: label,
       maximized: true,
     });
     // since the webview window is created asynchronously,
     // Tauri emits the `tauri://created` and `tauri://error` to notify you of the creation response
     webview.once("tauri://created", function () {
+      console.log("cc", arguments);
       // webview window successfully created
     });
     webview.once("tauri://error", function (e) {
       console.log(e);
       // an error occurred during webview window creation
     });
-
+    console.log(webview);
     // await invoke("open_docs", { invokeMessage: url, label });
   }
   const toJson = <T>(content: string = ""): T => {
@@ -57,12 +64,14 @@
       return "";
     }
   };
+  type Icon = {
+    url: string;
+    icon: string;
+    name: string;
+    allowMultipleInstances: string;
+  };
   type JsonFile = {
-    [icons: string]: {
-      url: string;
-      icon: string;
-      name: string;
-    }[];
+    [icons: string]: Icon[];
   } & {
     variables: {
       name: string;
@@ -137,6 +146,7 @@
           Object.keys(jsonFile).forEach((category) => {
             if (category === "variables") return;
             json.content[category] = jsonFile[category].map((icon) => ({
+              allowMultipleInstances: "false", // rust does not support optional
               ...icon,
               url: variables.reduce((url, variable) => {
                 return url.replace("$" + variable.name, variable.value);
@@ -147,6 +157,14 @@
             }));
           });
         }
+      }
+    })();
+  }
+  $: {
+    (async function () {
+      if (json.meta) {
+        console.log("invoked", JSON.stringify(json));
+        await invoke("load_json", { request: json });
       }
     })();
   }
@@ -173,8 +191,8 @@
       {#each json.content[category] as icon}
         <button
           class="icon"
-          on:click={() => openIcon(icon.url, category + "-" + icon.name)}
-          on:keyup={(e) => e.key === "Enter" && openIcon(icon.url, category + "-" + icon.name)}
+          on:click={() => openIcon(category, icon)}
+          on:keyup={(e) => e.key === "Enter" && openIcon(category, icon)}
         >
           <img src={icon.icon} alt="icon.url" />
           {icon.name || "unnamed"}

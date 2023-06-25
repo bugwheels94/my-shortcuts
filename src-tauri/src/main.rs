@@ -19,8 +19,10 @@ fn main() {
     tauri::Builder::default()
         .on_window_event(|event| match event.event() {
             tauri::WindowEvent::CloseRequested { api, .. } => {
-                event.window().hide().unwrap();
-                api.prevent_close();
+                if event.window().label() == "main" {
+                    event.window().hide().unwrap();
+                    api.prevent_close();
+                }
             }
             _ => {}
         })

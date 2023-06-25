@@ -10,16 +10,11 @@ fn greet(name: &str) -> String {
 use rand::distributions::{Alphanumeric, DistString};
 use std::collections::HashMap;
 use tauri::{
-    CustomMenuItem, Manager, SystemTray, SystemTrayEvent, SystemTrayMenu, SystemTrayMenuItem,
-    SystemTraySubmenu,
+    CustomMenuItem, Manager, SystemTray, SystemTrayEvent, SystemTrayMenu, SystemTraySubmenu,
 };
 fn main() {
-    let quit = CustomMenuItem::new("quit".to_string(), "Quit");
-    let hide = CustomMenuItem::new("hide".to_string(), "Hide");
-    let tray_menu = SystemTrayMenu::new()
-        .add_item(quit)
-        .add_native_item(SystemTrayMenuItem::Separator)
-        .add_item(hide); // insert the menu items here
+    let tray_menu = SystemTrayMenu::new();
+
     let system_tray = SystemTray::new().with_menu(tray_menu);
     tauri::Builder::default()
         .on_window_event(|event| match event.event() {
@@ -30,28 +25,48 @@ fn main() {
             _ => {}
         })
         .on_system_tray_event(|app, event| match event {
+            SystemTrayEvent::DoubleClick {
+                position: _,
+                size: _,
+                ..
+            } => {
+                print!("hey");
+                let window = app.get_window("main").unwrap();
+                window.show().unwrap();
+                // app.get_window("main").unwrap();
+            }
             SystemTrayEvent::MenuItemClick { id, .. } => {
-                let separator = ":_::_:";
-                let parts: Vec<&str> = id.split(separator).collect();
-                if !app.get_window(parts[0]).is_some() {
-                    let label;
-                    if parts[1] == "true" {
-                        label = format!(
-                            "{}{}",
-                            parts[0],
-                            Alphanumeric.sample_string(&mut rand::thread_rng(), 16)
-                        );
-                    } else {
-                        label = format!("{}", parts[0]);
+                match id.as_str() {
+                    "show" => {
+                        let window = app.get_window("main").unwrap();
+                        window.show().unwrap();
+                        let _ = window.set_focus();
                     }
-                    tauri::WindowBuilder::new(
-                        app,
-                        label, /* the unique window label */
-                        tauri::WindowUrl::External(parts[2].parse().unwrap()),
-                    )
-                    .maximized(true)
-                    .build()
-                    .unwrap();
+                    _ => {
+                        let separator = ":_::_:";
+                        let parts: Vec<&str> = id.split(separator).collect();
+
+                        if !app.get_window(parts[0]).is_some() {
+                            let label;
+                            if parts[1] == "true" {
+                                label = format!(
+                                    "{}{}",
+                                    parts[0],
+                                    Alphanumeric.sample_string(&mut rand::thread_rng(), 16)
+                                );
+                            } else {
+                                label = format!("{}", parts[0]);
+                            }
+                            tauri::WindowBuilder::new(
+                                app,
+                                label, /* the unique window label */
+                                tauri::WindowUrl::External(parts[2].parse().unwrap()),
+                            )
+                            .maximized(true)
+                            .build()
+                            .unwrap();
+                        }
+                    }
                 }
             }
             _ => {}
@@ -104,8 +119,9 @@ fn load_json(handle: tauri::AppHandle, request: JsonRequest) -> Result<JsonRespo
     // println!("Received JSON request: {:?}", gist_id);
 
     // empty_menu2.add_item(quit);
+    let show = CustomMenuItem::new("show".to_string(), "Show");
 
-    let mut new_menu = SystemTrayMenu::new();
+    let mut new_menu = SystemTrayMenu::new().add_item(show);
 
     for (category, icons) in request.content {
         let mut empty_menu = SystemTrayMenu::new();

@@ -22,12 +22,7 @@
   let show = false;
   type Config = { gistId: string; token: string };
   const config: Config = { gistId: "", token: "" };
-  async function openIcon(category: string, icon: Icon) {
-    const label =
-      category +
-      "-" +
-      icon.name +
-      (icon.allowMultipleInstances === "true" ? (Math.random() + 1).toString(36).substring(7) : "");
+  function createWebViewFromJs(icon:Icon, label:string) {
     const webview = new WebviewWindow(label, {
       url: icon.url,
       title: label,
@@ -36,15 +31,22 @@
     // since the webview window is created asynchronously,
     // Tauri emits the `tauri://created` and `tauri://error` to notify you of the creation response
     webview.once("tauri://created", function () {
-      console.log("cc", arguments);
       // webview window successfully created
     });
     webview.once("tauri://error", function (e) {
-      console.log(e);
       // an error occurred during webview window creation
     });
-    console.log(webview);
-    // await invoke("open_docs", { invokeMessage: url, label });
+
+  }
+  async function openIcon(category: string, icon: Icon, webview?:string) {
+    const label =
+      category +
+      "-" +
+      icon.name +
+      (icon.allowMultipleInstances === "true" ? (Math.random() + 1).toString(36).substring(7) : "");
+      
+      console.log(webview)
+    await invoke("open_icon", { invokeMessage: icon.url, label, webview: webview || "embedded"  });
   }
   const toJson = <T>(content: string = ""): T => {
     try {
@@ -73,10 +75,13 @@
   type JsonFile = {
     [icons: string]: Icon[];
   } & {
-    variables: {
-      name: string;
-      value: string;
-    }[];
+    settings: {
+      webview?: "edge" | "chrome",
+      variables: {
+        name: string;
+        value: string;
+      }[]
+    }
   };
 
   const getLocalConfig = async (): Promise<Config> => {
@@ -117,7 +122,7 @@
       return setLocalConfig(partialConfig);
     }
   }
-  let json: { content: Omit<JsonFile, "variables">; meta?: Config } = {
+  let json: { content: Omit<JsonFile, "settings">; meta?: Config, webview?: string} = {
     content: {},
   };
 
@@ -136,15 +141,15 @@
           }
         ).then((res) => res.json());
         const files = res.files;
-        console.log("files", files);
+        const reservedFields = ['settings'];
         for (let file in files) {
           const jsonFile = toJson<JsonFile>(files[file].content);
           console.log("json", jsonFile);
-          const variables = jsonFile.variables;
-
+          const variables = jsonFile.settings.variables;
+          json.webview = jsonFile.settings.webview
           json.meta = config;
           Object.keys(jsonFile).forEach((category) => {
-            if (category === "variables") return;
+            if (reservedFields.includes(category)) return;
             json.content[category] = jsonFile[category].map((icon) => ({
               allowMultipleInstances: "false", // rust does not support optional
               ...icon,
@@ -191,8 +196,8 @@
       {#each json.content[category] as icon}
         <button
           class="icon"
-          on:click={() => openIcon(category, icon)}
-          on:keyup={(e) => e.key === "Enter" && openIcon(category, icon)}
+          on:click={() => openIcon(category, icon, json.webview)}
+          on:keyup={(e) => e.key === "Enter" && openIcon(category, icon, json.webview)}
         >
           <img src={icon.icon} alt="icon.url" />
           {icon.name || "unnamed"}

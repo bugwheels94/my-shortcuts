@@ -3,10 +3,97 @@
 #![allow(non_snake_case)]
 // Learn more about Tauri commands at https://tauri.app/v1/guides/features/command
 #[tauri::command]
-fn greet(name: &str) -> String {
-    format!("Hello, {}! You've been greeted from Rust!", name)
+async fn open_icon(handle: tauri::AppHandle, invoke_message: String, label: String, webview: String) {
+
+	open(&handle, invoke_message,label, webview);
+}
+fn open(handle: &tauri::AppHandle, invoke_message: String, label: String, webview: String) {
+
+	if webview == "edge" || webview == "chrome" {
+		let _ = runCommand(
+			webview,
+			invoke_message.parse().unwrap()
+
+		);
+	} else {
+    tauri::WindowBuilder::new(
+			handle,
+			label, /* the unique window label */
+			tauri::WindowUrl::External(invoke_message.parse().unwrap()),
+	)
+	.maximized(true)
+	.build()
+	.unwrap();
+
+	}
 }
 
+use std::process::Command;
+use std::io::Error;
+
+fn runCommand(webview:String,url:String) -> Result<(), Error> {
+    // Define the command and its arguments
+
+		// #[cfg(target_os = "macos")]
+    // let command = "/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge";
+		// #[cfg(target_os = "windows")]
+    // let command = "/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge";
+    // let args = ["--app=".to_string()+&url];
+		let app;
+		if webview == "edge" {
+			app = match std::env::consts::OS {
+				"linux" => "microsoft-edge-stable",
+				"macos" => "/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge",
+				// "macos" => "open",
+				"windows" => "msedge.exe",
+				_ => return Err(Error::new(std::io::ErrorKind::Other, "Unsupported OS")),
+			};
+	
+		}
+		else if webview == "chrome" {
+			app = match std::env::consts::OS {
+				"linux" => "google-chrome",
+				"macos" => "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+				// "macos" => "open",
+				"windows" => "chrome.exe",
+				_ => return Err(Error::new(std::io::ErrorKind::Other, "Unsupported OS")),
+			};
+	
+		} else {
+			app = ""
+		}
+    let mut cmd = Command::new(app);
+		let s = "--app=".to_string()+&url;
+		// println!("{}",&s);
+    match std::env::consts::OS {
+			"linux" => cmd.arg("--app").arg(url),
+			// "macos" => cmd.args(&["-a", "Microsoft Edge", "--args", &s]),
+			"macos" => cmd.arg(&s),
+			"windows" => cmd.args(&["/C", "start", "chrome", "--app", &url]),
+			_ => return Err(Error::new(std::io::ErrorKind::Other, "Unsupported OS")),
+	};
+
+
+    // Create a Command object
+    // let mut cmd = Command::new(command);
+    // cmd.args(&args);
+
+    // Execute the command and wait for it to finish
+    let output = cmd.output()?;
+
+    // Check if the command was successful
+    if output.status.success() {
+        // Print the command's standard output
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        println!("Command output:\n{}", stdout);
+    } else {
+        // Print the command's standard error
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        println!("Command failed:\n{}", stderr);
+    }
+
+    Ok(())
+}
 use rand::distributions::{Alphanumeric, DistString};
 use std::collections::HashMap;
 use tauri::{
@@ -59,21 +146,14 @@ fn main() {
                             } else {
                                 label = format!("{}", parts[0]);
                             }
-                            tauri::WindowBuilder::new(
-                                app,
-                                label, /* the unique window label */
-                                tauri::WindowUrl::External(parts[2].parse().unwrap()),
-                            )
-                            .maximized(true)
-                            .build()
-                            .unwrap();
+														open(app,parts[2].to_string(), label, "edge".to_string());
                         }
                     }
                 }
             }
             _ => {}
         })
-        .invoke_handler(tauri::generate_handler![greet, load_json])
+        .invoke_handler(tauri::generate_handler![open_icon, load_json])
         .system_tray(system_tray)
         .build(tauri::generate_context!())
         .expect("error while running tauri application")

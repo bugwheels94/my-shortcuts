@@ -69,7 +69,7 @@ fn runCommand(webview:String,url:String) -> Result<(), Error> {
 			"linux" => cmd.arg("--app").arg(url),
 			// "macos" => cmd.args(&["-a", "Microsoft Edge", "--args", &s]),
 			"macos" => cmd.arg(&s),
-			"windows" => cmd.args(&["/C", "start", "chrome", "--app", &url]),
+			"windows" => cmd.arg(&s),
 			_ => return Err(Error::new(std::io::ErrorKind::Other, "Unsupported OS")),
 	};
 

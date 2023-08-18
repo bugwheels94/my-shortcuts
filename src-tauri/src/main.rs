@@ -45,7 +45,7 @@ fn runCommand(webview:String,url:String) -> Result<(), Error> {
 				"linux" => "microsoft-edge-stable",
 				"macos" => "/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge",
 				// "macos" => "open",
-				"windows" => "msedge.exe",
+				"windows" => "start",
 				_ => return Err(Error::new(std::io::ErrorKind::Other, "Unsupported OS")),
 			};
 	
@@ -55,7 +55,7 @@ fn runCommand(webview:String,url:String) -> Result<(), Error> {
 				"linux" => "google-chrome",
 				"macos" => "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
 				// "macos" => "open",
-				"windows" => "chrome.exe",
+				"windows" => "start",
 				_ => return Err(Error::new(std::io::ErrorKind::Other, "Unsupported OS")),
 			};
 	
@@ -69,7 +69,7 @@ fn runCommand(webview:String,url:String) -> Result<(), Error> {
 			"linux" => cmd.arg("--app").arg(url),
 			// "macos" => cmd.args(&["-a", "Microsoft Edge", "--args", &s]),
 			"macos" => cmd.arg(&s),
-			"windows" => cmd.arg(&s),
+			"windows" => cmd.arg("msedge.exe").arg(&s),
 			_ => return Err(Error::new(std::io::ErrorKind::Other, "Unsupported OS")),
 	};
 

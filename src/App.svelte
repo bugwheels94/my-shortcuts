@@ -19,8 +19,9 @@
   }
 
   let show = false;
-  type Config = { gistId: string; token: string };
+  type Config = { gistId: string; token: string, environment: string };
   const config: Config = { gistId: "", token: "" };
+  let jsonFile = null;
   function createWebViewFromJs(icon:Icon, label:string) {
     const webview = new WebviewWindow(label, {
       url: icon.url,
@@ -91,6 +92,7 @@
       );
       config.gistId = contents.gistId || "";
       config.token = contents.token || "";
+      config.environment = contents.environment || "default"
 
       return contents;
     } catch (e) {
@@ -124,7 +126,7 @@
 
   $: {
     (async function () {
-      if (json.meta === config) return;
+      if (jsonFile) return;
       if (config.gistId && config.token) {
         const res = await fetch(
           "https://api.github.com/gists/" + config.gistId + "?time=" + new Date(),
@@ -137,27 +139,36 @@
           }
         ).then((res) => res.json());
         const files = res.files;
-        const reservedFields = ['settings'];
         for (let file in files) {
-          const jsonFile = toJson<JsonFile>(files[file].content);
-          const variables = jsonFile.settings.variables;
-          json.webview = jsonFile.settings.webview
-          json.meta = config;
-          Object.keys(jsonFile).forEach((category) => {
-            if (reservedFields.includes(category)) return;
-            json.content[category] = jsonFile[category].map((icon) => ({
-              allowMultipleInstances: "false", // rust does not support optional
-              ...icon,
-              url: variables.reduce((url, variable) => {
-                return url.replace("$" + variable.name, variable.value);
-              }, icon.url),
-              icon: variables.reduce((icon, variable) => {
-                return icon.replace("$" + variable.name, variable.value);
-              }, icon.icon),
-            }));
-          });
+          jsonFile = toJson<JsonFile>(files[file].content);
+          break;
         }
       }
+    })();
+  }
+  $: {
+    (function(){
+      if (!jsonFile) return;
+      const environments = jsonFile.settings.environments;
+      const variables = (environments[config.environment] || []).concat(environments.default|| [])
+        .filter((v,i,a)=>a.findIndex(v2=>(v2.name===v.name))===i);
+      json.webview = jsonFile.settings.webview
+      json.meta = config;
+      const reservedFields = ['settings'];
+
+      Object.keys(jsonFile).forEach((category) => {
+        if (reservedFields.includes(category)) return;
+        json.content[category] = jsonFile[category].map((icon) => ({
+          allowMultipleInstances: "false", // rust does not support optional
+          ...icon,
+          url: variables.reduce((url, variable) => {
+            return url.replace("$" + variable.name, variable.value);
+          }, icon.url),
+          icon: variables.reduce((icon, variable) => {
+            return icon.replace("$" + variable.name, variable.value);
+          }, icon.icon),
+        }));
+      });
     })();
   }
   $: {
@@ -178,6 +189,7 @@
     <form on:submit|preventDefault={handleSubmit}>
       <input name="token" type="password" value={config.token} />
       <input name="gistId" value={config.gistId} />
+      <input name="environment" value={config.environment} />
       <button type="submit"> Save </button>
     </form>
   {/if}

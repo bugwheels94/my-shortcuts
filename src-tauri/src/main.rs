@@ -63,8 +63,8 @@ fn runCommand(webview:String,url:String, handle: &tauri::AppHandle) -> Result<()
             "linux" => cmd.arg("--app").arg(url),
             "macos" => cmd.arg(&s),
             "windows" => match webview.as_str() {
-                "edge" => cmd.arg("/C").arg("start").arg("msedge.exe").arg(&s),
-                "chrome" => cmd.arg("/C").arg("start").arg("chrome.exe").arg(&s),
+                "edge" => cmd.arg("/C").arg("start").arg("/B").arg("msedge.exe").arg(&s),
+                "chrome" => cmd.arg("/C").arg("start").arg("/B").arg("chrome.exe").arg(&s),
                 _ => &mut cmd,
             },
             _ => return Err(Error::new(std::io::ErrorKind::Other, "Unsupported OS")),

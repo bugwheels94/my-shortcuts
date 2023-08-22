@@ -17,15 +17,14 @@ fn open(handle: &tauri::AppHandle, invoke_message: String, label: String, webvie
 
 		);
 	} else {
-    tauri::WindowBuilder::new(
+        tauri::WindowBuilder::new(
 			handle,
 			label, /* the unique window label */
 			tauri::WindowUrl::External(invoke_message.parse().unwrap()),
-	)
-	.maximized(true)
-	.build()
-	.unwrap();
-
+        )
+        .maximized(true)
+        .build()
+        .unwrap();
 	}
 }
 
@@ -35,54 +34,41 @@ use std::fs::File;
 use std::io::prelude::*;
 use  tauri::api::path::app_config_dir;
 fn runCommand(webview:String,url:String, handle: &tauri::AppHandle) -> Result<(), Error> {
-    // Define the command and its arguments
+    let app;
+    let data_directory = app_config_dir(&handle.config()).expect("Failed to get data directory");
+    let file_path = data_directory.join("my-shortcut-log.txt");
 
-		// #[cfg(target_os = "macos")]
-    // let command = "/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge";
-		// #[cfg(target_os = "windows")]
-    // let command = "/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge";
-    // let args = ["--app=".to_string()+&url];
-		let app;
-        let data_directory = app_config_dir(&handle.config()).expect("Failed to get data directory");
-        let file_path = data_directory.join("my-shortcut-log.txt");
 
-    // println!("Received JSON request: {:?}", file_path.display());
-
-        // Open the file for writing
-        let mut file = File::create(&file_path).expect("Failed to create file");
-    
-		if webview == "edge" {
-			app = match std::env::consts::OS {
-				"linux" => "microsoft-edge-stable",
-				"macos" => "/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge",
-				// "macos" => "open",
-				"windows" => "start",
-				_ => return Err(Error::new(std::io::ErrorKind::Other, "Unsupported OS")),
-			};
-	
-		}
-		else if webview == "chrome" {
-			app = match std::env::consts::OS {
-				"linux" => "google-chrome",
-				"macos" => "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
-				// "macos" => "open",
-				"windows" => "start",
-				_ => return Err(Error::new(std::io::ErrorKind::Other, "Unsupported OS")),
-			};
-	
-		} else {
-			app = ""
-		}
+    let mut file = File::create(&file_path).expect("Failed to create file");
+    app = match webview.as_str() {
+        "edge" =>  match std::env::consts::OS {
+            "linux" => "microsoft-edge-stable",
+            "macos" => "/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge",
+            // "macos" => "open",
+            "windows" => "cmd",
+            _ => return Err(Error::new(std::io::ErrorKind::Other, "Unsupported OS")),
+        },
+        "chrome" => match std::env::consts::OS {
+            "linux" => "google-chrome",
+            "macos" => "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+            // "macos" => "open",
+            "windows" => "cmd",
+            _ => return Err(Error::new(std::io::ErrorKind::Other, "Unsupported OS")),
+        },
+        _ => ""
+    };
     let mut cmd = Command::new(app);
 		let s = "--app=".to_string()+&url;
-		// println!("{}",&s);
-    match std::env::consts::OS {
-			"linux" => cmd.arg("--app").arg(url),
-			// "macos" => cmd.args(&["-a", "Microsoft Edge", "--args", &s]),
-			"macos" => cmd.arg(&s),
-			"windows" => cmd.arg("msedge.exe").arg(&s),
-			_ => return Err(Error::new(std::io::ErrorKind::Other, "Unsupported OS")),
-	};
+        match std::env::consts::OS {
+            "linux" => cmd.arg("--app").arg(url),
+            "macos" => cmd.arg(&s),
+            "windows" => match webview.as_str() {
+                "edge" => cmd.arg("/C").arg("start").arg("msedge.exe").arg(&s),
+                "chrome" => cmd.arg("/C").arg("start").arg("chrome.exe").arg(&s),
+                _ => &mut cmd,
+            },
+            _ => return Err(Error::new(std::io::ErrorKind::Other, "Unsupported OS")),
+        };
 
 
     // Create a Command object
@@ -92,14 +78,14 @@ fn runCommand(webview:String,url:String, handle: &tauri::AppHandle) -> Result<()
     // Execute the command and wait for it to finish
     let output = cmd.output()?;
 
-    // Check if the command was successful
+
+        // Check if the command was successful
     if output.status.success() {
-        // Print the command's standard output
         file.write_all(&output.stdout)?;
     } else {
-        // Print the command's standard error
-        file.write_all(&output.stderr)?;
+        file.write_all(&output.stderr)?;    
     }
+
 
     Ok(())
 }

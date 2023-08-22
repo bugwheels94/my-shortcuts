@@ -10,7 +10,6 @@
     const formData = new FormData(this);
     const config = {};
     for (let field of formData) {
-      console.log(field);
 
       const [key, value] = field;
       config[key] = value;
@@ -45,7 +44,6 @@
       icon.name +
       (icon.allowMultipleInstances === "true" ? (Math.random() + 1).toString(36).substring(7) : "");
       
-      console.log(webview)
     await invoke("open_icon", { invokeMessage: icon.url, label, webview: webview || "embedded"  });
   }
   const toJson = <T>(content: string = ""): T => {
@@ -86,7 +84,6 @@
 
   const getLocalConfig = async (): Promise<Config> => {
     try {
-      console.log("Getting config from", BaseDirectory.AppConfig);
       const contents = toJson<Config>(
         await readTextFile("config.yaml", {
           dir: BaseDirectory.AppConfig,
@@ -107,7 +104,6 @@
 
   async function setLocalConfig(partialConfig: Partial<Config>) {
     try {
-      console.log("Getting config");
       const finalConfig = {
         ...config,
         ...partialConfig,
@@ -144,7 +140,6 @@
         const reservedFields = ['settings'];
         for (let file in files) {
           const jsonFile = toJson<JsonFile>(files[file].content);
-          console.log("json", jsonFile);
           const variables = jsonFile.settings.variables;
           json.webview = jsonFile.settings.webview
           json.meta = config;
@@ -168,7 +163,6 @@
   $: {
     (async function () {
       if (json.meta) {
-        console.log("invoked", JSON.stringify(json));
         await invoke("load_json", { request: json });
       }
     })();

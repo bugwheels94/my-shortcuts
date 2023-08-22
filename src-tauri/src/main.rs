@@ -12,7 +12,8 @@ fn open(handle: &tauri::AppHandle, invoke_message: String, label: String, webvie
 	if webview == "edge" || webview == "chrome" {
 		let _ = runCommand(
 			webview,
-			invoke_message.parse().unwrap()
+			invoke_message.parse().unwrap(),
+            handle
 
 		);
 	} else {
@@ -30,8 +31,10 @@ fn open(handle: &tauri::AppHandle, invoke_message: String, label: String, webvie
 
 use std::process::Command;
 use std::io::Error;
-
-fn runCommand(webview:String,url:String) -> Result<(), Error> {
+use std::fs::File;
+use std::io::prelude::*;
+use  tauri::api::path::app_config_dir;
+fn runCommand(webview:String,url:String, handle: &tauri::AppHandle) -> Result<(), Error> {
     // Define the command and its arguments
 
 		// #[cfg(target_os = "macos")]
@@ -40,6 +43,14 @@ fn runCommand(webview:String,url:String) -> Result<(), Error> {
     // let command = "/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge";
     // let args = ["--app=".to_string()+&url];
 		let app;
+        let data_directory = app_config_dir(&handle.config()).expect("Failed to get data directory");
+        let file_path = data_directory.join("my-shortcut-log.txt");
+
+    // println!("Received JSON request: {:?}", file_path.display());
+
+        // Open the file for writing
+        let mut file = File::create(&file_path).expect("Failed to create file");
+    
 		if webview == "edge" {
 			app = match std::env::consts::OS {
 				"linux" => "microsoft-edge-stable",
@@ -84,12 +95,10 @@ fn runCommand(webview:String,url:String) -> Result<(), Error> {
     // Check if the command was successful
     if output.status.success() {
         // Print the command's standard output
-        let stdout = String::from_utf8_lossy(&output.stdout);
-        println!("Command output:\n{}", stdout);
+        file.write_all(&output.stdout)?;
     } else {
         // Print the command's standard error
-        let stderr = String::from_utf8_lossy(&output.stderr);
-        println!("Command failed:\n{}", stderr);
+        file.write_all(&output.stderr)?;
     }
 
     Ok(())
@@ -119,7 +128,6 @@ fn main() {
                 size: _,
                 ..
             } => {
-                print!("hey");
                 let window = app.get_window("main").unwrap();
                 window.show().unwrap();
                 // app.get_window("main").unwrap();

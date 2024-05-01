@@ -3,45 +3,42 @@
 #![allow(non_snake_case)]
 // Learn more about Tauri commands at https://tauri.app/v1/guides/features/command
 #[tauri::command]
-async fn open_icon(handle: tauri::AppHandle, invoke_message: String, label: String, webview: String) {
-
-	open(&handle, invoke_message,label, webview);
+async fn open_icon(
+    handle: tauri::AppHandle,
+    invoke_message: String,
+    label: String,
+    webview: String,
+) {
+    open(&handle, invoke_message, label, webview);
 }
 fn open(handle: &tauri::AppHandle, invoke_message: String, label: String, webview: String) {
-
-	if webview == "edge" || webview == "chrome" {
-		let _ = runCommand(
-			webview,
-			invoke_message.parse().unwrap(),
-            handle
-
-		);
-	} else {
+    if webview == "edge" || webview == "chrome" || webview == "firefox" {
+        let _ = runCommand(webview, invoke_message.parse().unwrap(), handle);
+    } else {
         tauri::WindowBuilder::new(
-			handle,
-			label, /* the unique window label */
-			tauri::WindowUrl::External(invoke_message.parse().unwrap()),
+            handle,
+            label, /* the unique window label */
+            tauri::WindowUrl::External(invoke_message.parse().unwrap()),
         )
         .maximized(true)
         .build()
         .unwrap();
-	}
+    }
 }
 
-use std::process::Command;
-use std::io::Error;
 use std::fs::File;
 use std::io::prelude::*;
-use  tauri::api::path::app_config_dir;
-fn runCommand(webview:String,url:String, handle: &tauri::AppHandle) -> Result<(), Error> {
+use std::io::Error;
+use std::process::Command;
+use tauri::api::path::app_config_dir;
+fn runCommand(webview: String, url: String, handle: &tauri::AppHandle) -> Result<(), Error> {
     let app;
     let data_directory = app_config_dir(&handle.config()).expect("Failed to get data directory");
     let file_path = data_directory.join("my-shortcut-log.txt");
 
-
     let mut file = File::create(&file_path).expect("Failed to create file");
     app = match webview.as_str() {
-        "edge" =>  match std::env::consts::OS {
+        "edge" => match std::env::consts::OS {
             "linux" => "microsoft-edge-stable",
             "macos" => "/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge",
             // "macos" => "open",
@@ -55,21 +52,42 @@ fn runCommand(webview:String,url:String, handle: &tauri::AppHandle) -> Result<()
             "windows" => "cmd",
             _ => return Err(Error::new(std::io::ErrorKind::Other, "Unsupported OS")),
         },
-        _ => ""
+        "firefox" => match std::env::consts::OS {
+            "linux" => "firefox",
+            "macos" => "/Applications/Firefox.app/Contents/MacOS/firefox",
+            // "macos" => "open",
+            "windows" => "cmd",
+            _ => return Err(Error::new(std::io::ErrorKind::Other, "Unsupported OS")),
+        },
+        _ => "",
     };
     let mut cmd = Command::new(app);
-		let s = "--app=".to_string()+&url;
-        match std::env::consts::OS {
-            "linux" => cmd.arg("--app").arg(url),
-            "macos" => cmd.arg(&s),
-            "windows" => match webview.as_str() {
-                "edge" => cmd.arg("/C").arg("start").arg("/B").arg("msedge.exe").arg(&s),
-                "chrome" => cmd.arg("/C").arg("start").arg("/B").arg("chrome.exe").arg(&s),
-                _ => &mut cmd,
-            },
-            _ => return Err(Error::new(std::io::ErrorKind::Other, "Unsupported OS")),
-        };
-
+    let s = "--app=".to_string() + &url;
+    match std::env::consts::OS {
+        "linux" => cmd.arg("--app").arg(url),
+        "macos" => match webview.as_str() {
+            "edge" => cmd.arg(&s),
+            "chrome" => cmd.arg(&s),
+            "firefox" => cmd.arg(url),
+            _ => &mut cmd,
+        },
+        "windows" => match webview.as_str() {
+            "edge" => cmd
+                .arg("/C")
+                .arg("start")
+                .arg("/B")
+                .arg("msedge.exe")
+                .arg(&s),
+            "chrome" => cmd
+                .arg("/C")
+                .arg("start")
+                .arg("/B")
+                .arg("chrome.exe")
+                .arg(&s),
+            _ => &mut cmd,
+        },
+        _ => return Err(Error::new(std::io::ErrorKind::Other, "Unsupported OS")),
+    };
 
     // Create a Command object
     // let mut cmd = Command::new(command);
@@ -78,14 +96,12 @@ fn runCommand(webview:String,url:String, handle: &tauri::AppHandle) -> Result<()
     // Execute the command and wait for it to finish
     let output = cmd.output()?;
 
-
-        // Check if the command was successful
+    // Check if the command was successful
     if output.status.success() {
         file.write_all(&output.stdout)?;
     } else {
-        file.write_all(&output.stderr)?;    
+        file.write_all(&output.stderr)?;
     }
-
 
     Ok(())
 }
@@ -118,33 +134,31 @@ fn main() {
                 window.show().unwrap();
                 // app.get_window("main").unwrap();
             }
-            SystemTrayEvent::MenuItemClick { id, .. } => {
-                match id.as_str() {
-                    "show" => {
-                        let window = app.get_window("main").unwrap();
-                        window.show().unwrap();
-                        let _ = window.set_focus();
-                    }
-                    _ => {
-                        let separator = ":_::_:";
-                        let parts: Vec<&str> = id.split(separator).collect();
+            SystemTrayEvent::MenuItemClick { id, .. } => match id.as_str() {
+                "show" => {
+                    let window = app.get_window("main").unwrap();
+                    window.show().unwrap();
+                    let _ = window.set_focus();
+                }
+                _ => {
+                    let separator = ":_::_:";
+                    let parts: Vec<&str> = id.split(separator).collect();
 
-                        if !app.get_window(parts[0]).is_some() {
-                            let label;
-                            if parts[1] == "true" {
-                                label = format!(
-                                    "{}{}",
-                                    parts[0],
-                                    Alphanumeric.sample_string(&mut rand::thread_rng(), 16)
-                                );
-                            } else {
-                                label = format!("{}", parts[0]);
-                            }
-														open(app,parts[2].to_string(), label, "edge".to_string());
+                    if !app.get_window(parts[0]).is_some() {
+                        let label;
+                        if parts[1] == "true" {
+                            label = format!(
+                                "{}{}",
+                                parts[0],
+                                Alphanumeric.sample_string(&mut rand::thread_rng(), 16)
+                            );
+                        } else {
+                            label = format!("{}", parts[0]);
                         }
+                        open(app, parts[2].to_string(), label, "edge".to_string());
                     }
                 }
-            }
+            },
             _ => {}
         })
         .invoke_handler(tauri::generate_handler![open_icon, load_json])

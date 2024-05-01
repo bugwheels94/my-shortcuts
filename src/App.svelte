@@ -17,7 +17,7 @@
 
     setLocalConfig(config);
   }
-
+  console.log(BaseDirectory.AppConfig)
   let show = false;
   type Config = { gistId: string; token: string, environment: string };
   const config: Config = { gistId: "", token: "" };
@@ -55,6 +55,7 @@
         }) || {};
       return v;
     } catch (e) {
+      console.log(e)
       return {} as T;
     }
   };
@@ -141,6 +142,8 @@
         const files = res.files;
         for (let file in files) {
           jsonFile = toJson<JsonFile>(files[file].content);
+          console.log(files[file].content, jsonFile)
+
           break;
         }
       }
@@ -149,6 +152,7 @@
   $: {
     (function(){
       if (!jsonFile) return;
+      console.log(jsonFile)
       const environments = jsonFile.settings.environments;
       const variables = (environments[config.environment] || []).concat(environments.default|| [])
         .filter((v,i,a)=>a.findIndex(v2=>(v2.name===v.name))===i);

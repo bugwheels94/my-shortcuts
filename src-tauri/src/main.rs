@@ -155,7 +155,7 @@ fn main() {
                         } else {
                             label = format!("{}", parts[0]);
                         }
-                        open(app, parts[2].to_string(), label, "edge".to_string());
+                        open(app, parts[2].to_string(), label, "firefox".to_string());
                     }
                 }
             },

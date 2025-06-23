@@ -21,7 +21,7 @@ jobs:
           cache-dependency-path: "package-lock.json"
       - run: npm i
       - run: npm run tauri build
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: windows-out
           path: |
@@ -40,7 +40,7 @@ jobs:
           cache-dependency-path: "package-lock.json"
       - run: npm i
       - run: npm run tauri build
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: mac-out
           path: |
@@ -58,7 +58,7 @@ jobs:
           cache-dependency-path: "package-lock.json"
       - run: npm i
       - run: npm run tauri build
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: ubuntu-out
           path: |
@@ -76,15 +76,15 @@ jobs:
           node-version: 18
           cache-dependency-path: "package-lock.json"
       - run: npm i
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           name: mac-out
           path: mac-out
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           name: windows-out
           path: windows-out
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           name: ubuntu-out
           path: ubuntu-out          

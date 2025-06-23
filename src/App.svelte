@@ -3,14 +3,18 @@
   import yaml from "js-yaml";
   import { WebviewWindow } from "@tauri-apps/api/window";
 
-  import { readTextFile, BaseDirectory, createDir, writeTextFile } from "@tauri-apps/api/fs";
+  import {
+    readTextFile,
+    BaseDirectory,
+    createDir,
+    writeTextFile,
+  } from "@tauri-apps/api/fs";
   import { invoke } from "@tauri-apps/api/tauri";
   // Read the text file in the `$APPCONFIG/app.conf` path
   function handleSubmit() {
     const formData = new FormData(this);
     const config = {};
     for (let field of formData) {
-
       const [key, value] = field;
       config[key] = value;
     }
@@ -18,10 +22,10 @@
     setLocalConfig(config);
   }
   let show = false;
-  type Config = { gistId: string; token: string, environment: string };
-  const config: Config = { gistId: "", token: "" };
+  type Config = { gistId: string; token: string; environment: string };
+  const config: Config = { gistId: "", token: "", environment: "" };
   let jsonFile = null;
-  function createWebViewFromJs(icon:Icon, label:string) {
+  function createWebViewFromJs(icon: Icon, label: string) {
     const webview = new WebviewWindow(label, {
       url: icon.url,
       title: label,
@@ -35,18 +39,23 @@
     webview.once("tauri://error", function (e) {
       // an error occurred during webview window creation
     });
-
   }
-  async function openIcon(category: string, icon: Icon, webview?:string) {
+  async function openIcon(category: string, icon: Icon, webview?: string) {
     const label =
       category +
       "-" +
       icon.name +
-      (icon.allowMultipleInstances === "true" ? (Math.random() + 1).toString(36).substring(7) : "");
-      
-    await invoke("open_icon", { invokeMessage: icon.url, label, webview: webview || "embedded"  });
+      (icon.allowMultipleInstances === "true"
+        ? (Math.random() + 1).toString(36).substring(7)
+        : "");
+
+    await invoke("open_icon", {
+      invokeMessage: icon.url,
+      label,
+      webview: webview || "embedded",
+    });
   }
-  const toJson = <T>(content: string = ""): T => {
+  const toJson = <T,>(content: string = ""): T => {
     try {
       const v =
         yaml.load(content, {
@@ -54,7 +63,7 @@
         }) || {};
       return v;
     } catch (e) {
-      console.log(e)
+      console.log(e);
       return {} as T;
     }
   };
@@ -78,8 +87,8 @@
       variables: {
         name: string;
         value: string;
-      }[]
-    }
+      }[];
+    };
   };
 
   const getLocalConfig = async (): Promise<Config> => {
@@ -91,7 +100,7 @@
       );
       config.gistId = contents.gistId || "";
       config.token = contents.token || "";
-      config.environment = contents.environment || "default"
+      config.environment = contents.environment || "default";
 
       return contents;
     } catch (e) {
@@ -119,7 +128,11 @@
       return setLocalConfig(partialConfig);
     }
   }
-  let json: { content: Omit<JsonFile, "settings">; meta?: Config, webview?: string} = {
+  let json: {
+    content: Omit<JsonFile, "settings">;
+    meta?: Config;
+    webview?: string;
+  } = {
     content: {},
   };
 
@@ -128,7 +141,10 @@
       if (jsonFile) return;
       if (config.gistId && config.token) {
         const res = await fetch(
-          "https://api.github.com/gists/" + config.gistId + "?time=" + new Date(),
+          "https://api.github.com/gists/" +
+            config.gistId +
+            "?time=" +
+            new Date(),
           {
             headers: {
               "X-GitHub-Api-Version": "2022-11-28",
@@ -147,15 +163,17 @@
     })();
   }
   $: {
-    (function(){
+    (function () {
       if (!jsonFile) return;
-      console.log(jsonFile)
+      console.log(jsonFile);
       const environments = jsonFile.settings.environments;
-      const variables = (environments[config.environment] || []).concat(environments.default|| [])
-        .filter((v,i,a)=>a.findIndex(v2=>(v2.name===v.name))===i);
+      const variables = (environments[config.environment] || [])
+        .concat(environments.default || [])
+        .filter((v, i, a) => a.findIndex((v2) => v2.name === v.name) === i);
       json.meta = config;
-      const reservedFields = ['settings'];
-      json.webview = variables.find(variable => variable.name === "webview").value || ""
+      const reservedFields = ["settings"];
+      json.webview =
+        variables.find((variable) => variable.name === "webview").value || "";
 
       Object.keys(jsonFile).forEach((category) => {
         if (reservedFields.includes(category)) return;
@@ -170,7 +188,7 @@
           }, icon.icon),
         }));
       });
-      console.log("woww", json)
+      console.log("woww", json);
     })();
   }
   $: {
@@ -205,7 +223,8 @@
         <button
           class="icon"
           on:click={() => openIcon(category, icon, json.webview)}
-          on:keyup={(e) => e.key === "Enter" && openIcon(category, icon, json.webview)}
+          on:keyup={(e) =>
+            e.key === "Enter" && openIcon(category, icon, json.webview)}
         >
           <img src={icon.icon} alt="icon.url" />
           {icon.name || "unnamed"}

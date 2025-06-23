@@ -70,7 +70,12 @@ fn runCommand(webview: String, url: String, handle: &tauri::AppHandle) -> Result
     let s = "--app=".to_string() + &url;
 
     match std::env::consts::OS {
-        "linux" => cmd.arg("--app").arg(url),
+        "linux" => match webview.as_str() {
+            "edge" => cmd.arg(&s),
+            "chrome" => cmd.arg(&s),
+            "firefox" => cmd.arg(url),
+            _ => &mut cmd,
+        },
         "macos" => match webview.as_str() {
             "edge" => cmd.arg(&s),
             "chrome" => cmd.arg(&s),
@@ -162,7 +167,7 @@ fn main() {
                         } else {
                             label = format!("{}", parts[0]);
                         }
-                        open(app, parts[2].to_string(), label, "firefox".to_string());
+                        open(app, parts[2].to_string(), label, parts[3].to_string());
                     }
                 }
             },
@@ -187,6 +192,7 @@ use serde::{Deserialize, Serialize};
 struct JsonRequest {
     // meta: Meta,
     content: HashMap<String, Vec<Icon>>,
+    webview: String,
 }
 
 #[derive(Deserialize, Debug)]
@@ -226,8 +232,15 @@ fn load_json(handle: tauri::AppHandle, request: JsonRequest) -> Result<JsonRespo
         for icon in icons {
             let separator = ":_::_:";
             let concatenated_string = format!(
-                "{}-{}{}{}{}{}",
-                category, icon.name, separator, icon.allowMultipleInstances, separator, icon.url
+                "{}-{}{}{}{}{}{}{}",
+                category,
+                icon.name,
+                separator,
+                icon.allowMultipleInstances,
+                separator,
+                icon.url,
+                separator,
+                request.webview
             );
             let quit = CustomMenuItem::new(concatenated_string, icon.name.clone());
 

@@ -17,7 +17,6 @@
 
     setLocalConfig(config);
   }
-  console.log(BaseDirectory.AppData)
   let show = false;
   type Config = { gistId: string; token: string, environment: string };
   const config: Config = { gistId: "", token: "" };
@@ -76,7 +75,6 @@
     [icons: string]: Icon[];
   } & {
     settings: {
-      webview?: "edge" | "chrome",
       variables: {
         name: string;
         value: string;
@@ -142,7 +140,6 @@
         const files = res.files;
         for (let file in files) {
           jsonFile = toJson<JsonFile>(files[file].content);
-          console.log(files[file].content, jsonFile)
 
           break;
         }
@@ -156,9 +153,9 @@
       const environments = jsonFile.settings.environments;
       const variables = (environments[config.environment] || []).concat(environments.default|| [])
         .filter((v,i,a)=>a.findIndex(v2=>(v2.name===v.name))===i);
-      json.webview = jsonFile.settings.webview
       json.meta = config;
       const reservedFields = ['settings'];
+      json.webview = variables.find(variable => variable.name === "webview").value || ""
 
       Object.keys(jsonFile).forEach((category) => {
         if (reservedFields.includes(category)) return;
@@ -173,6 +170,7 @@
           }, icon.icon),
         }));
       });
+      console.log("woww", json)
     })();
   }
   $: {

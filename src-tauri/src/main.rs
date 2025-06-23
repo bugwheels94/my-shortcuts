@@ -30,39 +30,45 @@ use std::fs::File;
 use std::io::prelude::*;
 use std::io::Error;
 use std::process::Command;
-use tauri::api::path::app_config_dir;
+use tauri::api::path::app_data_dir;
 fn runCommand(webview: String, url: String, handle: &tauri::AppHandle) -> Result<(), Error> {
+    println!("Starting runCommand for webview: {}, url: {}", webview, url);
+
     let app;
-    let data_directory = app_config_dir(&handle.config()).expect("Failed to get data directory");
+    let data_directory = app_data_dir(&handle.config()).expect("Failed to get data directory");
     let file_path = data_directory.join("my-shortcut-log.txt");
 
+    println!("Log file will be written to: {:?}", file_path);
+
     let mut file = File::create(&file_path).expect("Failed to create file");
+
     app = match webview.as_str() {
         "edge" => match std::env::consts::OS {
             "linux" => "microsoft-edge-stable",
             "macos" => "/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge",
-            // "macos" => "open",
             "windows" => "cmd",
             _ => return Err(Error::new(std::io::ErrorKind::Other, "Unsupported OS")),
         },
         "chrome" => match std::env::consts::OS {
             "linux" => "google-chrome",
             "macos" => "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
-            // "macos" => "open",
             "windows" => "cmd",
             _ => return Err(Error::new(std::io::ErrorKind::Other, "Unsupported OS")),
         },
         "firefox" => match std::env::consts::OS {
             "linux" => "firefox",
             "macos" => "/Applications/Firefox.app/Contents/MacOS/firefox",
-            // "macos" => "open",
             "windows" => "cmd",
             _ => return Err(Error::new(std::io::ErrorKind::Other, "Unsupported OS")),
         },
         _ => "",
     };
+
+    println!("Resolved browser command: {}", app);
+
     let mut cmd = Command::new(app);
     let s = "--app=".to_string() + &url;
+
     match std::env::consts::OS {
         "linux" => cmd.arg("--app").arg(url),
         "macos" => match webview.as_str() {
@@ -89,22 +95,23 @@ fn runCommand(webview: String, url: String, handle: &tauri::AppHandle) -> Result
         _ => return Err(Error::new(std::io::ErrorKind::Other, "Unsupported OS")),
     };
 
-    // Create a Command object
-    // let mut cmd = Command::new(command);
-    // cmd.args(&args);
+    println!("Executing command: {:?}", cmd);
 
-    // Execute the command and wait for it to finish
     let output = cmd.output()?;
 
-    // Check if the command was successful
+    println!("Command executed. Success: {}", output.status.success());
+
     if output.status.success() {
         file.write_all(&output.stdout)?;
     } else {
         file.write_all(&output.stderr)?;
     }
 
+    println!("Command output written to log.");
+
     Ok(())
 }
+
 use rand::distributions::{Alphanumeric, DistString};
 use std::collections::HashMap;
 use tauri::{

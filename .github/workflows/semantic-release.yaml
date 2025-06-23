@@ -46,8 +46,7 @@ jobs:
           path: |
             src-tauri/target/release/bundle/macos/my-shortcuts.app
             src-tauri/target/release/bundle/dmg/my-shortcuts_0.0.0_x64.dmg
-
-  mac:
+  ubuntu:
     name: release-ubuntu
     runs-on: ubuntu-24.04
     steps:
@@ -68,7 +67,7 @@ jobs:
   semantic-release:
     name: semantic-release
     runs-on: ubuntu-22.04
-    needs: [mac, windows]
+    needs: [mac, windows, ubuntu]
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-node@v3

@@ -17,7 +17,7 @@
 
     setLocalConfig(config);
   }
-  console.log(BaseDirectory.AppConfig)
+  console.log(BaseDirectory.AppData)
   let show = false;
   type Config = { gistId: string; token: string, environment: string };
   const config: Config = { gistId: "", token: "" };
@@ -88,7 +88,7 @@
     try {
       const contents = toJson<Config>(
         await readTextFile("config.yaml", {
-          dir: BaseDirectory.AppConfig,
+          dir: BaseDirectory.AppData,
         })
       );
       config.gistId = contents.gistId || "";
@@ -97,9 +97,9 @@
 
       return contents;
     } catch (e) {
-      await createDir("", { dir: BaseDirectory.AppConfig, recursive: true });
+      await createDir("", { dir: BaseDirectory.AppData, recursive: true });
       await writeTextFile("config.yaml", "", {
-        dir: BaseDirectory.AppConfig,
+        dir: BaseDirectory.AppData,
       });
       // return getLocalConfig();
     }
@@ -113,11 +113,11 @@
       };
       const yaml = toYaml(finalConfig);
       await writeTextFile("config.yaml", yaml, {
-        dir: BaseDirectory.AppConfig,
+        dir: BaseDirectory.AppData,
       });
       getLocalConfig();
     } catch (e) {
-      await createDir("", { dir: BaseDirectory.AppConfig, recursive: true });
+      await createDir("", { dir: BaseDirectory.AppData, recursive: true });
       return setLocalConfig(partialConfig);
     }
   }

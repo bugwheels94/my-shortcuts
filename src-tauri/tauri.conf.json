@@ -27,7 +27,9 @@
         "removeFile": true,
         "renameFile": true,
         "exists": true,
-        "scope": ["**"]
+        "scope": [
+          "$APPDATA/config.yaml"
+        ]
       },
       "globalShortcut": {
         "all": true
@@ -56,7 +58,6 @@
     "security": {
       "csp": null
     },
-
     "windows": [
       {
         "fullscreen": false,

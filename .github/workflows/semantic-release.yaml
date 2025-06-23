@@ -46,32 +46,25 @@ jobs:
           path: |
             src-tauri/target/release/bundle/macos/my-shortcuts.app
             src-tauri/target/release/bundle/dmg/my-shortcuts_0.0.0_x64.dmg
-  # ubuntu:
-  #   name: release-ubuntu
-  #   runs-on: ubuntu-22.04
-  #   needs: [ui]
-  #   steps:
-  #     - uses: actions/checkout@v3
-  #     - run: rm -rf ui
-  #     - uses: actions/download-artifact@v3
-  #       with:
-  #         name: ui
-  #         path: ui
-  #     - run: npm i -g @lytejs/mesh@beta
-  #     - run: mesh -c sync dependencies
-  #     - run: npm i --legacy-peer-deps
-  #     - run: sudo apt -y install rpm
-  #     - run: npm i -g electron-installer-debian electron-installer-redhat
-  #     - run: npm run build
-  #     - run: npm run build:electron
-  #     - run: find out -type f
-  #     - uses: actions/upload-artifact@v3
-  #       with:
-  #         name: ubuntu-out
-  #         path: |
-  #           out/make/zip/**/*.zip
-  #           out/make/rpm/**/*.rpm
-  #           out/make/deb/**/*.deb
+
+  mac:
+    name: release-ubuntu
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          cache: npm
+          node-version: 18
+          cache-dependency-path: "package-lock.json"
+      - run: npm i
+      - run: npm run tauri build
+      - uses: actions/upload-artifact@v3
+        with:
+          name: ubuntu-out
+          path: |
+            src-tauri/target/release/bundle/deb/my-shortcuts_0.0.0_amd64.deb
+            src-tauri/target/release/bundle/appimage/my-shortcuts_0.0.0_amd64.AppImage
   semantic-release:
     name: semantic-release
     runs-on: ubuntu-22.04
@@ -92,6 +85,10 @@ jobs:
         with:
           name: windows-out
           path: windows-out
+      - uses: actions/download-artifact@v3
+        with:
+          name: ubuntu-out
+          path: ubuntu-out          
       - run: npx semantic-release
         env:
           HUSKY: 0

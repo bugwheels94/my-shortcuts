@@ -11,7 +11,7 @@ name: Release
 jobs:
   windows:
     name: release-windows
-    runs-on: windows-2022
+    runs-on: windows-2025
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-node@v3
@@ -30,7 +30,7 @@ jobs:
 
   mac:
     name: release-mac
-    runs-on: macos-12
+    runs-on: macos-15
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-node@v3

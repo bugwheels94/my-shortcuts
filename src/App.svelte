@@ -1,15 +1,10 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import yaml from "js-yaml";
-  import { WebviewWindow } from "@tauri-apps/api/window";
+  import { WebviewWindow } from "@tauri-apps/api/webviewWindow";
 
-  import {
-    readTextFile,
-    BaseDirectory,
-    createDir,
-    writeTextFile,
-  } from "@tauri-apps/api/fs";
-  import { invoke } from "@tauri-apps/api/tauri";
+  import { readTextFile, BaseDirectory, mkdir, writeTextFile } from "@tauri-apps/plugin-fs";
+  import { invoke } from "@tauri-apps/api/core";
   // Read the text file in the `$APPCONFIG/app.conf` path
   function handleSubmit() {
     const formData = new FormData(this);
@@ -45,9 +40,7 @@
       category +
       "-" +
       icon.name +
-      (icon.allowMultipleInstances === "true"
-        ? (Math.random() + 1).toString(36).substring(7)
-        : "");
+      (icon.allowMultipleInstances === "true" ? (Math.random() + 1).toString(36).substring(7) : "");
 
     await invoke("open_icon", {
       invokeMessage: icon.url,
@@ -95,7 +88,7 @@
     try {
       const contents = toJson<Config>(
         await readTextFile("config.yaml", {
-          dir: BaseDirectory.AppData,
+          baseDir: BaseDirectory.AppData,
         })
       );
       config.gistId = contents.gistId || "";
@@ -104,9 +97,9 @@
 
       return contents;
     } catch (e) {
-      await createDir("", { dir: BaseDirectory.AppData, recursive: true });
+      await mkdir("", { baseDir: BaseDirectory.AppData, recursive: true });
       await writeTextFile("config.yaml", "", {
-        dir: BaseDirectory.AppData,
+        baseDir: BaseDirectory.AppData,
       });
       // return getLocalConfig();
     }
@@ -120,11 +113,11 @@
       };
       const yaml = toYaml(finalConfig);
       await writeTextFile("config.yaml", yaml, {
-        dir: BaseDirectory.AppData,
+        baseDir: BaseDirectory.AppData,
       });
       getLocalConfig();
     } catch (e) {
-      await createDir("", { dir: BaseDirectory.AppData, recursive: true });
+      await mkdir("", { baseDir: BaseDirectory.AppData, recursive: true });
       return setLocalConfig(partialConfig);
     }
   }
@@ -141,10 +134,7 @@
       if (jsonFile) return;
       if (config.gistId && config.token) {
         const res = await fetch(
-          "https://api.github.com/gists/" +
-            config.gistId +
-            "?time=" +
-            new Date(),
+          "https://api.github.com/gists/" + config.gistId + "?time=" + new Date(),
           {
             headers: {
               "X-GitHub-Api-Version": "2022-11-28",
@@ -172,8 +162,7 @@
         .filter((v, i, a) => a.findIndex((v2) => v2.name === v.name) === i);
       json.meta = config;
       const reservedFields = ["settings"];
-      json.webview =
-        variables.find((variable) => variable.name === "webview").value || "";
+      json.webview = variables.find((variable) => variable.name === "webview").value || "";
 
       Object.keys(jsonFile).forEach((category) => {
         if (reservedFields.includes(category)) return;
@@ -207,9 +196,9 @@
   <button on:click={() => (show = !show)}>Configure</button>
   {#if show}
     <form on:submit|preventDefault={handleSubmit}>
-      <input name="token" type="password" value={config.token} />
-      <input name="gistId" value={config.gistId} />
-      <input name="environment" value={config.environment} />
+      <input name="token" type="password" value={config.token} placeholder="Token" />
+      <input name="gistId" value={config.gistId} placeholder="gistid" />
+      <input name="environment" value={config.environment} placeholder="environment" />
       <button type="submit"> Save </button>
     </form>
   {/if}
@@ -223,8 +212,7 @@
         <button
           class="icon"
           on:click={() => openIcon(category, icon, json.webview)}
-          on:keyup={(e) =>
-            e.key === "Enter" && openIcon(category, icon, json.webview)}
+          on:keyup={(e) => e.key === "Enter" && openIcon(category, icon, json.webview)}
         >
           <img src={icon.icon} alt="icon.url" />
           {icon.name || "unnamed"}

@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { invoke } from "@tauri-apps/api/tauri"
-import { WebviewWindow } from '@tauri-apps/api/window'
+  import { invoke } from "@tauri-apps/api/core"
+import { WebviewWindow } from '@tauri-apps/api/webviewWindow'
 
   let name = "";
   let greetMsg = ""

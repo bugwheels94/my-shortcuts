@@ -79,6 +79,7 @@ jobs:
           path: |
             src-tauri/target/release/bundle/deb/my-shortcuts_0.0.0_amd64.deb
             src-tauri/target/release/bundle/appimage/my-shortcuts_0.0.0_amd64.AppImage
+            src-tauri/target/release/bundle/rpm/my-shortcuts-0.0.0-1.x86_64.rpm
   semantic-release:
     name: semantic-release
     runs-on: ubuntu-22.04

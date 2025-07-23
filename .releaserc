@@ -2,21 +2,18 @@
   "plugins": [
     "@semantic-release/commit-analyzer",
     "@semantic-release/release-notes-generator",
-
     [
       "@semantic-release/exec",
       {
-        "publishCmd": "mkdir tmp-assets && mv \"mac-out/macos/my-shortcuts.app\" \"tmp-assets/my-shortcuts-${nextRelease.version}.app\" && mv \"mac-out/dmg/my-shortcuts_0.0.0_x64.dmg\" \"tmp-assets/my-shortcuts-${nextRelease.version}.dmg\" && mv \"windows-out/msi/my-shortcuts_0.0.0_x64_en-US.msi\" \"tmp-assets/my-shortcuts-${nextRelease.version}.msi\" && mv \"windows-out/nsis/my-shortcuts_0.0.0_x64-setup.exe\" \"tmp-assets/my-shortcuts-${nextRelease.version}.exe\" && mv \"ubuntu-out/deb/my-shortcuts_0.0.0_amd64.deb\" \"tmp-assets/my-shortcuts-${nextRelease.version}.deb\" && mv \"ubuntu-out/appimage/my-shortcuts_0.0.0_amd64.AppImage\" \"tmp-assets/my-shortcuts-${nextRelease.version}.AppImage\""
+        "publishCmd": "mkdir tmp-assets && mv \"mac-out/macos/my-shortcuts.app\" \"tmp-assets/my-shortcuts-${nextRelease.version}.app\" && mv \"mac-out/dmg/my-shortcuts_0.0.0_aarch64.dmg\" \"tmp-assets/my-shortcuts-${nextRelease.version}.dmg\" && mv \"windows-out/msi/my-shortcuts_0.0.0_x64_en-US.msi\" \"tmp-assets/my-shortcuts-${nextRelease.version}.msi\" && mv \"windows-out/nsis/my-shortcuts_0.0.0_x64-setup.exe\" \"tmp-assets/my-shortcuts-${nextRelease.version}.exe\" && mv \"ubuntu-out/deb/my-shortcuts_0.0.0_amd64.deb\" \"tmp-assets/my-shortcuts-${nextRelease.version}.deb\" && mv \"ubuntu-out/appimage/my-shortcuts_0.0.0_amd64.AppImage\" \"tmp-assets/my-shortcuts-${nextRelease.version}.AppImage\""
       }
     ],
-
     [
       "@semantic-release/exec",
       {
         "publishCmd": "echo ${nextRelease.version} > .version_semantic_info_workaround"
       }
     ],
-
     [
       "@semantic-release/github",
       {

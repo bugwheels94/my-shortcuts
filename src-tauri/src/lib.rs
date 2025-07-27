@@ -7,10 +7,7 @@ use std::collections::HashMap;
 use tauri::image::Image;
 use tauri::tray::TrayIconBuilder;
 use tauri::Manager;
-use tauri::{
-    menu::{Menu, MenuItem},
-    AppHandle, WebviewWindowBuilder,
-};
+use tauri::{menu::Menu, AppHandle, WebviewWindowBuilder};
 
 use image::ImageReader;
 
@@ -254,6 +251,10 @@ fn load_json(app: AppHandle, request: JsonRequest) -> Result<JsonResponse, Strin
         submenus.insert(0, Box::new(show));
     }
 
+    if let Ok(quit) = MenuItem::with_id(&app, "quit", "Quit", true, None::<&str>) {
+        submenus.push(Box::new(quit));
+    }
+
     // 4. Final tray menu
     let menu = Menu::with_items(&app, &submenus.iter().map(|i| &**i).collect::<Vec<_>>())
         .map_err(|e| format!("menu creation failed: {e}"))?;
@@ -269,33 +270,56 @@ fn load_json(app: AppHandle, request: JsonRequest) -> Result<JsonResponse, Strin
         message: "Icons loaded successfully".to_string(),
     })
 }
+
+use std::sync::{Arc, Mutex};
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    let allow_exit = Arc::new(Mutex::new(false));
+
+    let exit_flag = allow_exit.clone();
     tauri::Builder::default()
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_opener::init())
         .invoke_handler(tauri::generate_handler![open_icon, load_json])
-        .setup(|app| {
-            let quit_i = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
-            let menu = Menu::with_items(app, &[&quit_i])?;
+        .setup(move |app| {
+            let exit_flag = exit_flag.clone();
+            let menu = Menu::with_items(app, &[])?;
             TrayIconBuilder::with_id("menu")
                 .icon(decode_icon())
                 .menu(&menu)
                 .show_menu_on_left_click(true)
-                .on_menu_event(|app, event| {
+                .on_menu_event(move |app, event| {
                     let id = event.id.as_ref();
 
                     match id {
                         "quit" => {
-                            println!("quit menu item was clicked");
+                            println!("Quit menu item clicked");
+                            *exit_flag.lock().unwrap() = true;
                             app.exit(0);
                         }
-                        "show" => {
-                            if let Some(window) = app.get_webview_window("main") {
+                        "show" => match app.get_webview_window("main") {
+                            Some(window) => {
+                                let _ = window.unminimize();
                                 let _ = window.show();
                                 let _ = window.set_focus();
                             }
-                        }
+                            None => {
+                                let config = app.config();
+
+                                if let Some(cfg) =
+                                    config.app.windows.iter().find(|w| w.label == "main")
+                                {
+                                    let _ = WebviewWindowBuilder::new(app, "main", cfg.url.clone())
+                                        .title(cfg.title.clone())
+                                        .fullscreen(cfg.fullscreen)
+                                        .resizable(cfg.resizable)
+                                        .decorations(cfg.decorations)
+                                        .maximized(cfg.maximized)
+                                        .build();
+                                }
+                            }
+                        },
                         _ => {
                             println!("handling menu item: {:?}", id);
                             let separator = ":_::_:";
@@ -336,9 +360,11 @@ pub fn run() {
         })
         .build(tauri::generate_context!())
         .expect("error while running tauri app")
-        .run(|_app, event| {
+        .run(move |_app, event| {
             if let tauri::RunEvent::ExitRequested { api, .. } = event {
-                api.prevent_exit();
+                if !*allow_exit.lock().unwrap() {
+                    api.prevent_exit(); // only prevent if not allowed
+                }
             }
         });
 }

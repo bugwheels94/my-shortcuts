@@ -33,6 +33,7 @@ fn decode_icon() -> Image<'static> {
 struct Icon {
     url: String,
     name: String,
+    cmd: String,
     allowMultipleInstances: String,
 }
 
@@ -59,7 +60,7 @@ async fn open(app: &AppHandle, invoke_message: String, label: String, webview: S
     if webview == "edge" || webview == "chrome" || webview == "firefox" {
         // Open via external browser in app mode if supported
         let _ = runCommand(webview, invoke_message.parse().unwrap(), app);
-    } else {
+    } else if webview == "embedded" {
         // Open inside a Tauri external window
         let _ = WebviewWindowBuilder::new(
             app,
@@ -69,6 +70,30 @@ async fn open(app: &AppHandle, invoke_message: String, label: String, webview: S
         .maximized(true)
         .visible(true)
         .build();
+    } else {
+        let parts = match shell_words::split(&invoke_message) {
+            Ok(parts) => parts,
+            Err(err) => {
+                eprintln!("Failed to parse command: {}", err);
+                return;
+            }
+        };
+
+        let (cmd, args) = match parts.split_first() {
+            Some(split) => split,
+            None => {
+                eprintln!("Command must not be empty");
+                return;
+            }
+        };
+
+        match Command::new(cmd).args(args).status() {
+            Ok(status) => status,
+            Err(err) => {
+                eprintln!("Failed to execute command: {}", err);
+                return;
+            }
+        };
     }
 }
 
@@ -116,18 +141,17 @@ fn runCommand(webview: String, url: String, handle: &tauri::AppHandle) -> Result
 
     let mut cmd = Command::new(app);
     let s = "--app=".to_string() + &url;
-
     match std::env::consts::OS {
         "linux" => match webview.as_str() {
             "edge" => cmd.arg(&s),
             "chrome" => cmd.arg(&s),
-            "firefox" => cmd.arg(url),
+            "firefox" => cmd.arg("--new-window").arg(&url),
             _ => &mut cmd,
         },
         "macos" => match webview.as_str() {
             "edge" => cmd.arg(&s),
             "chrome" => cmd.arg(&s),
-            "firefox" => cmd.arg(url),
+            "firefox" => cmd.arg("--new-window").arg(&url),
             _ => &mut cmd,
         },
         "windows" => match webview.as_str() {
@@ -143,6 +167,13 @@ fn runCommand(webview: String, url: String, handle: &tauri::AppHandle) -> Result
                 .arg("/B")
                 .arg("chrome.exe")
                 .arg(&s),
+            "firefox" => cmd
+                .arg("/C")
+                .arg("start")
+                .arg("/B")
+                .arg("firefox.exe")
+                .arg("--new-window")
+                .arg(&url),
             _ => &mut cmd,
         },
         _ => return Err(Error::new(std::io::ErrorKind::Other, "Unsupported OS")),
@@ -177,6 +208,18 @@ fn load_json(app: AppHandle, request: JsonRequest) -> Result<JsonResponse, Strin
 
         for icon in icons {
             let separator = ":_::_:";
+            let url_or_cmd = if !icon.cmd.is_empty() {
+                &icon.cmd
+            } else {
+                &icon.url
+            };
+
+            let webview_part = if !icon.cmd.is_empty() {
+                ""
+            } else {
+                &request.webview
+            };
+
             let id = format!(
                 "{}-{}{}{}{}{}{}{}",
                 category,
@@ -184,9 +227,9 @@ fn load_json(app: AppHandle, request: JsonRequest) -> Result<JsonResponse, Strin
                 separator,
                 icon.allowMultipleInstances,
                 separator,
-                icon.url,
+                url_or_cmd,
                 separator,
-                request.webview
+                webview_part
             );
 
             if let Ok(item) = MenuItem::with_id(&app, id, &icon.name, true, None::<&str>) {

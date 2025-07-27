@@ -1,7 +1,6 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import yaml from "js-yaml";
-  import { WebviewWindow } from "@tauri-apps/api/webviewWindow";
 
   import { readTextFile, BaseDirectory, mkdir, writeTextFile } from "@tauri-apps/plugin-fs";
   import { invoke } from "@tauri-apps/api/core";
@@ -20,21 +19,6 @@
   type Config = { gistId: string; token: string; environment: string };
   const config: Config = { gistId: "", token: "", environment: "" };
   let jsonFile = null;
-  function createWebViewFromJs(icon: Icon, label: string) {
-    const webview = new WebviewWindow(label, {
-      url: icon.url,
-      title: label,
-      maximized: true,
-    });
-    // since the webview window is created asynchronously,
-    // Tauri emits the `tauri://created` and `tauri://error` to notify you of the creation response
-    webview.once("tauri://created", function () {
-      // webview window successfully created
-    });
-    webview.once("tauri://error", function (e) {
-      // an error occurred during webview window creation
-    });
-  }
   async function openIcon(category: string, icon: Icon, webview?: string) {
     const label =
       category +
@@ -43,9 +27,9 @@
       (icon.allowMultipleInstances === "true" ? (Math.random() + 1).toString(36).substring(7) : "");
 
     await invoke("open_icon", {
-      invokeMessage: icon.url,
+      invokeMessage: icon.cmd || icon.url,
       label,
-      webview: webview || "embedded",
+      webview: icon.cmd ? "" : webview || "embedded",
     });
   }
   const toJson = <T,>(content: string = ""): T => {
@@ -71,6 +55,7 @@
     url: string;
     icon: string;
     name: string;
+    cmd: string;
     allowMultipleInstances: string;
   };
   type JsonFile = {
@@ -171,13 +156,15 @@
           ...icon,
           url: variables.reduce((url, variable) => {
             return url.replace("$" + variable.name, variable.value);
-          }, icon.url),
+          }, icon.url || ""),
+          cmd: variables.reduce((cmd, variable) => {
+            return cmd.replace("$" + variable.name, variable.value);
+          }, icon.cmd || ""),
           icon: variables.reduce((icon, variable) => {
             return icon.replace("$" + variable.name, variable.value);
-          }, icon.icon),
+          }, icon.icon || ""),
         }));
       });
-      console.log("woww", json);
     })();
   }
   $: {

@@ -31,9 +31,9 @@ fn decode_icon() -> Image<'static> {
 
 #[derive(Deserialize, Debug)]
 struct Icon {
-    url: String,
+    url: Option<String>,
     name: String,
-    cmd: String,
+    cmd: Option<String>,
     allowMultipleInstances: String,
 }
 
@@ -208,16 +208,14 @@ fn load_json(app: AppHandle, request: JsonRequest) -> Result<JsonResponse, Strin
 
         for icon in icons {
             let separator = ":_::_:";
-            let url_or_cmd = if !icon.cmd.is_empty() {
-                &icon.cmd
-            } else {
-                &icon.url
+            let url_or_cmd: &str = match &icon.cmd {
+                Some(cmd) if !cmd.is_empty() => cmd,
+                _ => icon.url.as_deref().unwrap_or(""),
             };
 
-            let webview_part = if !icon.cmd.is_empty() {
-                ""
-            } else {
-                &request.webview
+            let webview_part: &str = match &icon.cmd {
+                Some(cmd) if !cmd.is_empty() => "",
+                _ => request.webview.as_str(),
             };
 
             let id = format!(

@@ -16,8 +16,8 @@
     setLocalConfig(config);
   }
   let show = false;
-  type Config = { gistId: string; token: string; environment: string };
-  const config: Config = { gistId: "", token: "", environment: "" };
+  type Config = { gistId: string; token: string; environment: string; offlineConfig?: string };
+  const config: Config = { gistId: "", token: "", environment: "", offlineConfig: "" };
   let jsonFile = null;
   async function openIcon(category: string, icon: Icon, webview?: string) {
     const label =
@@ -79,6 +79,7 @@
       config.gistId = contents.gistId || "";
       config.token = contents.token || "";
       config.environment = contents.environment || "default";
+      config.offlineConfig = contents.offlineConfig || "";
 
       return contents;
     } catch (e) {
@@ -114,24 +115,25 @@
     content: {},
   };
 
-  $: {
-    (async function () {
-      if (jsonFile) return;
-      if (config.gistId && config.token) {
+  $: if (config) {
+    (async () => {
+      if (config.offlineConfig) {
+        jsonFile = toJson<JsonFile>(config.offlineConfig);
+      } else if (config.gistId && config.token) {
         const res = await fetch(
-          "https://api.github.com/gists/" + config.gistId + "?time=" + new Date(),
+          `https://api.github.com/gists/${config.gistId}?time=${Date.now()}`,
           {
             headers: {
               "X-GitHub-Api-Version": "2022-11-28",
-              Authorization: "Bearer " + config.token,
+              Authorization: `Bearer ${config.token}`,
               Accept: "application/vnd.github+json",
             },
           }
         ).then((res) => res.json());
+
         const files = res.files;
         for (let file in files) {
           jsonFile = toJson<JsonFile>(files[file].content);
-
           break;
         }
       }
@@ -140,11 +142,13 @@
   $: {
     (function () {
       if (!jsonFile) return;
-      console.log(jsonFile);
       const environments = jsonFile.settings.environments;
       const variables = (environments[config.environment] || [])
         .concat(environments.default || [])
         .filter((v, i, a) => a.findIndex((v2) => v2.name === v.name) === i);
+      json = {
+        content: {},
+      };
       json.meta = config;
       const reservedFields = ["settings"];
       json.webview = variables.find((variable) => variable.name === "webview").value || "";
@@ -186,6 +190,15 @@
       <input name="token" type="password" value={config.token} placeholder="Token" />
       <input name="gistId" value={config.gistId} placeholder="gistid" />
       <input name="environment" value={config.environment} placeholder="environment" />
+
+      <hr />
+      OR
+      <hr />
+      <textarea
+        name="offlineConfig"
+        bind:value={config.offlineConfig}
+        placeholder="Full YAML config"
+      />
       <button type="submit"> Save </button>
     </form>
   {/if}
